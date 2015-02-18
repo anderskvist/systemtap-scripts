@@ -1,0 +1,38 @@
+#!/usr/bin/stap -v
+
+global files
+global ts1
+
+probe kernel.function("vfs_getattr") {
+  d_mountpoint = @cast($mnt, "vfsmount")->mnt_mountpoint;
+  d_parent = @cast($dentry, "dentry")->d_parent;
+
+  file = d_name(d_mountpoint) . "/" . reverse_path_walk(d_parent) . "/" . d_name($dentry);
+
+  if (d_name(d_mountpoint) == "guest") {
+    files[file] ++
+  }
+}
+
+probe timer.s(1) {
+	ansi_clear_screen()
+	foreach (file in files- limit 50)
+	{
+		total += files[file]
+	}
+
+	ansi_set_color3(37,41,1);
+	printf("    # getattr     percent     %10d seconds runtime      %s                                                       \n", gettimeofday_s() - ts1, ctime(gettimeofday_s()));
+	ansi_reset_color();
+
+	foreach (file in files- limit 50)
+	{
+		percent = 100*files[file]/total;
+		printf("%13d%11d%%     %s\n",files[file], percent, file);
+	}
+	delete total;
+}
+
+probe begin {
+      ts1 = gettimeofday_s();
+}
