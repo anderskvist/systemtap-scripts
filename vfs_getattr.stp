@@ -21,14 +21,16 @@ probe timer.s(1) {
 		total += files[file]
 	}
 
+	seconds = gettimeofday_s() - ts1;
+
 	ansi_set_color3(37,41,1);
-	printf("    # getattr     percent     %10d seconds runtime      %s                                                       \n", gettimeofday_s() - ts1, ctime(gettimeofday_s()));
+	printf("    # getattr       #/s     percent     %10d seconds runtime      %s                                             \n", seconds, ctime(gettimeofday_s()));
 	ansi_reset_color();
 
 	foreach (file in files- limit 50)
 	{
 		percent = 100*files[file]/total;
-		printf("%13d%11d%%     %s\n",files[file], percent, file);
+		printf("%13d %7d/s %10d%%     %s\n",files[file], files[file]/seconds ,percent, file);
 	}
 	delete total;
 }
